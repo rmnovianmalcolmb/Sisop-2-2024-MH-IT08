@@ -7,6 +7,10 @@
 #include <dirent.h>
 #include <limits.h>
 #include <pwd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+pid_t child_pid = -1;
 
 void logProcess(char *user, int pid, char *name, int status) {
     time_t rawtime;
@@ -51,36 +55,40 @@ void monitorProcess(char *user) {
         return;
     }
 
-    while ((ent = readdir(dir)) != NULL) {
-        if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
-            char path[PATH_MAX];
-            sprintf(path, "/proc/%s/comm", ent->d_name);
-            FILE *file = fopen(path, "r");
-            if (file != NULL) {
-                char process_name[256];
-                fgets(process_name, sizeof(process_name), file);
-                process_name[strcspn(process_name, "\n")] = '\0';
-                int pid = atoi(ent->d_name);
-                char status_path[PATH_MAX];
-                sprintf(status_path, "/proc/%s/status", ent->d_name);
-                FILE *status_file = fopen(status_path, "r");
-                if (status_file != NULL) {
-                    char line[256];
-                    uid_t processUserId = -1;
-                    while (fgets(line, sizeof(line), status_file)) {
-                        if (strstr(line, "Uid:") != NULL) {
-                            sscanf(line, "Uid: %d", &processUserId);
-                            break;
+    while (1) {
+        rewinddir(dir);
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+                char path[PATH_MAX];
+                sprintf(path, "/proc/%s/comm", ent->d_name);
+                FILE *file = fopen(path, "r");
+                if (file != NULL) {
+                    char process_name[256];
+                    fgets(process_name, sizeof(process_name), file);
+                    process_name[strcspn(process_name, "\n")] = '\0';
+                    int pid = atoi(ent->d_name);
+                    char status_path[PATH_MAX];
+                    sprintf(status_path, "/proc/%s/status", ent->d_name);
+                    FILE *status_file = fopen(status_path, "r");
+                    if (status_file != NULL) {
+                        char line[256];
+                        uid_t processUserId = -1;
+                        while (fgets(line, sizeof(line), status_file)) {
+                            if (strstr(line, "Uid:") != NULL) {
+                                sscanf(line, "Uid: %d", &processUserId);
+                                break;
+                            }
+                        }
+                        fclose(status_file);
+                        if (processUserId == userId) {
+                            logProcess(user, pid, process_name, 1);
                         }
                     }
-                    fclose(status_file);
-                    if (processUserId == userId) {
-                        logProcess(user, pid, process_name, 1);
-                    }
+                    fclose(file);
                 }
-                fclose(file);
             }
         }
+        sleep(1);
     }
 
     closedir(dir);
@@ -148,28 +156,51 @@ void listProcesses(char *user) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s <user>\n", argv[0]);
+    if (argc < 3) {
+        printf("Usage: %s <option> <user>\n", argv[0]);
         printf("Options:\n");
+        printf("  -l: List processes\n");
         printf("  -m: Monitor processes\n");
+        printf("  -s: Stop monitoring processes\n");
+        printf("  -c: Kill processes continuously\n");
+        printf("  -a: Stop killing processes\n");
         return 1;
     }
 
-    char *user = argv[1];
+    char option = argv[1][1];
+    char *user = argv[2];
 
-    if (argc == 2) {
-        listProcesses(user);
-        return 0;
-    }
-
-    if (strcmp(argv[2], "-m") == 0) {
-        while (1) {
-            monitorProcess(user);
-            sleep(1);
-        }
-    } else {
-        printf("Invalid option!\n");
-        return 1;
+    switch (option) {
+        case 'l':
+            listProcesses(user);
+            break;
+        case 'm':
+            child_pid = fork();
+            if (child_pid == 0) {
+                monitorProcess(user);
+                exit(0);
+            } else if (child_pid < 0) {
+                printf("Failed to create child process\n");
+            }
+            break;
+        case 's':
+            if (child_pid < 0) {
+                kill(child_pid, SIGTERM);
+                child_pid = -1;
+                printf("Monitoring processes stopped\n");
+            } else {
+                printf("No monitoring process found\n");
+            }
+            break;
+        case 'c':
+            // unfinished
+            break;
+        case 'a':
+            // unfinished
+            break;
+        default:
+            printf("Invalid option!\n");
+            return 1;
     }
 
     return 0;
