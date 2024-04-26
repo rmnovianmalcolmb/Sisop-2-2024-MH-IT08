@@ -9,7 +9,7 @@
 
 ### management.c
 
-**1. Fungsi `write_log' berfungsi untuk menuliskan log setiap menjalankqn command ./management**
+**1. Fungsi `write_log' berfungsi untuk menuliskan log setiap menjalankan command**
 ```bash
 void write_log(const char *username, const char *filename, const char *action) {
     // Get current time
@@ -34,6 +34,43 @@ void write_log(const char *username, const char *filename, const char *action) {
     fclose(log_file);
 }
 ```
+
+**2. Fungsi `is_library_exists' berfungsi untuk mengecek apakah sudah ada folder library atau belum**
+```bash
+int is_library_exists(const char *dir_path) {
+    DIR *d = opendir(dir_path);
+    if (d) {
+        struct dirent *dir;
+        while ((dir = readdir(d)) != NULL) {
+            if (strcmp(dir->d_name, "library") == 0) {
+                closedir(d);
+                return 1;
+            }
+        }
+        closedir(d);
+    }
+    return 0;
+}
+```
+
+**2. Fungsi `is_library_exists' berfungsi untuk mengecek apakah sudah ada folder library atau belum**
+```bash
+int is_library_exists(const char *dir_path) {
+    DIR *d = opendir(dir_path);
+    if (d) {
+        struct dirent *dir;
+        while ((dir = readdir(d)) != NULL) {
+            if (strcmp(dir->d_name, "library") == 0) {
+                closedir(d);
+                return 1;
+            }
+        }
+        closedir(d);
+    }
+    return 0;
+}
+```
+
 # Soal Nomor 4
 ## Deskripsi
 Program ini dirancang untuk mengelola pembukaan dan penutupan beberapa instansi dari berbagai aplikasi berdasarkan input pengguna dari baris perintah atau file konfigurasi. Ini berguna untuk pengujian, mengelola sesi aplikasi secara massal, atau mengotomatisasi setup dari beberapa instansi perangkat lunak.
