@@ -71,7 +71,7 @@ int is_library_exists(const char *dir_path) {
 }
 ```
 
-# Soal Nomor 4
+## Soal Nomor 4
 ## Deskripsi
 Program ini dirancang untuk mengelola pembukaan dan penutupan beberapa instansi dari berbagai aplikasi berdasarkan input pengguna dari baris perintah atau file konfigurasi. Ini berguna untuk pengujian, mengelola sesi aplikasi secara massal, atau mengotomatisasi setup dari beberapa instansi perangkat lunak.
 
@@ -111,12 +111,10 @@ Untuk menghentikan semua aplikasi yang dibuka oleh program ini:
 - **\`child_pids\` array**: Menyimpan ID proses dari semua proses anak yang dibuat.
 - **\`child_pid_count\`**: Menghitung jumlah proses anak yang aktif.
 
-## Penanganan Kesalahan
-Penanganan kesalahan dasar untuk operasi file, pembuatan proses (\`fork\`), dan peluncuran aplikasi (\`execlp\`). Kesalahan akan dilaporkan di konsol.
+##Catatan
+Namun dalam penerapan code diatas, code pada program tidak bisa mengimplementasikan penggunaan argumen -k untuk mematikan atau menutup aplikasi yang dibuka menggunakan -f atau -k
 
 ## Batasan
 Program mengasumsikan semua aplikasi yang ditentukan dapat dijalankan dari terminal menggunakan namanya.
 
-## Kesimpulan
-Program ini menawarkan kerangka dasar untuk manajemen aplikasi melalui terminal Linux, sehingga cocok untuk tes otomatis, manajemen sesi, atau lingkungan pengembangan.
-EOF
+
