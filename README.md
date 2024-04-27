@@ -166,6 +166,21 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 ```
+### Cara Penggunaan 
+#### Compile terlebih dahulu program `virus.c`
+```bash
+gcc virus.c -o virus
+```
+#### Jalankan program dengan argumen nama filepath yang ingin dijalankan program. Disini saya menggunakan contoh direktori path saya sendiri, ubahlah sesuai path yang anda inginkan agar program berjalan dengan benar.
+```bash
+./virus /home/ubuntu/sisop/no1/tes
+```
+### Isi dari `virus.log` yang dibuat program
+<gambar>
+### File dalam path sebelum program dijalankan
+<gambar>
+### File dalam path setelah program dijalankan
+<gambar>
 
 ## SOAL NOMOR 2
 
