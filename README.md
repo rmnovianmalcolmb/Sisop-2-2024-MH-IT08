@@ -247,6 +247,233 @@ int is_library_exists(const char *dir_path) {
     return 0;
 }
 ```
+## SOAL NOMOR 3
+Program nomor 3 menerima input argumen ketika dijalankan sebagai fitur dari program ini. Berikut penjelasannya.
+### 1. logProcess
+Fungsi ini digunakan program apabila user ingin menggunakan fitur `-m` yaitu monitoring process dimana fungsi ini akan menyimpan log atau catatan monitoring proses kedalam file <user>.log dengan format :
+[dd:mm:yy-H:M:S]-pid-program-status
+```bash
+void logProcess(char *user, int pid, char *name, int status) {
+    time_t rawtime;
+    struct tm *timeinfo;
+    char buffer[80];
+    FILE *logFile;
+    char logFileName[100];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(buffer, sizeof(buffer), "%d:%m:%Y-%H:%M:%S", timeinfo);
+    sprintf(logFileName, "%s.log", user);
+
+    logFile = fopen(logFileName, "a");
+    if (logFile == NULL) {
+        printf("Error opening log file!\n");
+        return;
+    }
+
+    fprintf(logFile, "[%s]-%d-%s-%s\n", buffer, pid, name, status ? "JALAN" : "GAGAL");
+    fclose(logFile);
+}
+```
+### 2. monitorProcess
+Fungsi untuk memonitoring proses apabila user memberikan argumen `-m`
+```bash
+
+void monitorProcess(char *user) {
+    DIR *dir;
+    struct dirent *ent;
+    struct passwd *pwd;
+    uid_t userId;
+
+    pwd = getpwnam(user);
+    if (pwd == NULL) {
+        printf("User not found\n");
+        return;
+    }
+
+    userId = pwd->pw_uid;
+
+    dir = opendir("/proc");
+    if (dir == NULL) {
+        printf("Error opening /proc directory\n");
+        return;
+    }
+
+    while (1) {
+        rewinddir(dir);
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+                char path[PATH_MAX];
+                sprintf(path, "/proc/%s/comm", ent->d_name);
+                FILE *file = fopen(path, "r");
+                if (file != NULL) {
+                    char process_name[256];
+                    fgets(process_name, sizeof(process_name), file);
+                    process_name[strcspn(process_name, "\n")] = '\0';
+                    int pid = atoi(ent->d_name);
+                    char status_path[PATH_MAX];
+                    sprintf(status_path, "/proc/%s/status", ent->d_name);
+                    FILE *status_file = fopen(status_path, "r");
+                    if (status_file != NULL) {
+                        char line[256];
+                        uid_t processUserId = -1;
+                        while (fgets(line, sizeof(line), status_file)) {
+                            if (strstr(line, "Uid:") != NULL) {
+                                sscanf(line, "Uid: %d", &processUserId);
+                                break;
+                            }
+                        }
+                        fclose(status_file);
+                        if (processUserId == userId) {
+                            logProcess(user, pid, process_name, 1);
+                        }
+                    }
+                    fclose(file);
+                }
+            }
+        }
+        sleep(1);
+    }
+
+    closedir(dir);
+}
+```
+### 3. listProcess
+Fungsi untuk melaksanakan argumen `-l` yaitu program akan menampilkan list semua kegiatan user. 
+```bash
+void listProcesses(char *user) {
+    DIR *dir;
+    struct dirent *ent;
+    struct passwd *pwd;
+    uid_t userId;
+    int found = 0;
+
+    pwd = getpwnam(user);
+    if (pwd == NULL) {
+        printf("User not found\n");
+        return;
+    }
+
+    userId = pwd->pw_uid;
+
+    dir = opendir("/proc");
+    if (dir == NULL) {
+        printf("Error opening /proc directory\n");
+        return;
+    }
+
+    while ((ent = readdir(dir)) != NULL) {
+        if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+            char path[PATH_MAX];
+            sprintf(path, "/proc/%s/comm", ent->d_name);
+            FILE *file = fopen(path, "r");
+            if (file != NULL) {
+                char process_name[256];
+                fgets(process_name, sizeof(process_name), file);
+                process_name[strcspn(process_name, "\n")] = '\0';
+                int pid = atoi(ent->d_name);
+                char status_path[PATH_MAX];
+                sprintf(status_path, "/proc/%s/status", ent->d_name);
+                FILE *status_file = fopen(status_path, "r");
+                if (status_file != NULL) {
+                    char line[256];
+                    uid_t processUserId = -1;
+                    while (fgets(line, sizeof(line), status_file)) {
+                        if (strstr(line, "Uid:") != NULL) {
+                            sscanf(line, "Uid: %d", &processUserId);
+                            break;
+                        }
+                    }
+                    fclose(status_file);
+                    if (processUserId == userId) {
+                        printf("%d\t%s\n", pid, process_name);
+                        found = 1;
+                    }
+                }
+                fclose(file);
+            }
+        }
+    }
+
+    closedir(dir);
+
+    if (!found) {
+        printf("No processes found for user %s\n", user);
+    }
+}
+```
+### 4. Main Function
+Main function menerima 3 argumen apabila tidak maka program tidak berjalan. Dalam hal ini saya menggunakan switch case ketika argumen yang diberikan `-l` program akan menjalankan fungsi `listProcesses`, apabila `-m` maka akan melakukan fork() dan menjalankan fungsi `monitorProcesses`, apabila `-s` maka akan meng-kill program monitoring process yang sedang berjalan. Sementara itu fitur untuk `-c` dan `-a` belum bisa saya buat karena keterbatasan waktu dan tenaga.
+Note : Hati-hati dalam menggunakan fitur `-s` karena program akan membunuh proses sampai dapat menyebabkan vmware blank screen atau terlogout dari user. Dalam kasus saya selama ini sebenarnya aman saja namun mungkin saja berbahaya bagi user lain. Ini juga merupakan problem dari kode yang belum bisa saya selesaikan dengan aman untuk menghentikan program monitoring proccess.
+```bash
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Usage: %s <option> <user>\n", argv[0]);
+        printf("Options:\n");
+        printf("  -l: List processes\n");
+        printf("  -m: Monitor processes\n");
+        printf("  -s: Stop monitoring processes\n");
+        printf("  -c: Kill processes continuously\n");
+        printf("  -a: Stop killing processes\n");
+        return 1;
+    }
+
+    char option = argv[1][1];
+    char *user = argv[2];
+
+    switch (option) {
+        case 'l':
+            listProcesses(user);
+            break;
+        case 'm':
+            child_pid = fork();
+            if (child_pid == 0) {
+                monitorProcess(user);
+                exit(0);
+            } else if (child_pid < 0) {
+                printf("Failed to create child process\n");
+            }
+            break;
+        case 's':
+            if (child_pid < 0) {
+                kill(child_pid, SIGTERM);
+                child_pid = -1;
+                printf("Monitoring processes stopped\n");
+            } else {
+                printf("No monitoring process found\n");
+            }
+            break;
+        case 'c':
+            // unfinished
+            break;
+        case 'a':
+            // unfinished
+            break;
+        default:
+            printf("Invalid option!\n");
+            return 1;
+    }
+
+    return 0;
+}
+```
+
+### Cara Penggunaan
+1. Compile kode admin.c dengan command
+```bash
+gcc admin.c -o admin
+```
+2. Jalankan argumen yang anda inginkan, disini contohnya adalah argumen `-m` yang merupakan monitoring proccess
+```bash
+./admin -m <user>
+```
+### Fitur `-l` program
+![IMG-20240427-WA0016](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/146155753/61214a57-21aa-46a4-9d45-1a5041c597e7)
+### Fitur `-m` program
+![IMG-20240427-WA0012](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/146155753/b07f94f4-aa10-4b4c-b6b9-6e2746708a86)
+### Fitur `-s` program
+Tidak dapat saya tampilkan karena virtual machine saya langsung terlogout dan blank screen sehingga tidak bisa mengambil screenshoot
 
 ## Soal Nomor 4
 ## Deskripsi
