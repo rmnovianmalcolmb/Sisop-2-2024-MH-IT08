@@ -92,20 +92,45 @@ Ini akan menghasilkan eksekutabel yang bernama setup.c
 Program dapat dijalankan dalam tiga mode berbeda:
 
 ### 1. Membuka Aplikasi Langsung
-Untuk menentukan aplikasi dan jumlah instansi langsung melalui argumen baris perintah:
+Untuk menentukan aplikasi dan jumlah instansi langsung melalui argumen baris saya menggunakan fungsi seperti ini:
+```bash
+void open_apps_directly(char *argv[]) {
+    int argc = 0;
+    while (argv[argc] != NULL) {
+        argc++;
+    }
+
+    if ((argc - 2) % 2 != 0) {
+        printf("Usage: %s -o <app1> <num1> [<app2> <num2> ...]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 2; i < argc; i += 2) {
+        char *app = argv[i];
+        int num_windows = atoi(argv[i + 1]);
+        open_apps_helper(app, num_windows);
+    }
+}
+```
+Fungsi ini melakukan beberapa hal sebagai berikut:
+1. Menghitung Jumlah Argumen: Fungsi pertama menghitung jumlah total argumen yang diterima untuk memastikan input yang diberikan sesuai format yang diharapkan.
+2. Validasi Argumen: Fungsi memastikan bahwa jumlah argumen setelah -o adalah genap, karena setiap aplikasi harus diikuti oleh angka yang menyatakan berapa kali aplikasi tersebut harus dibuka. Jika jumlah argumen tidak sesuai, program akan menampilkan pesan penggunaan yang benar dan keluar dengan exit(EXIT_FAILURE).
+3. Membuka Aplikasi: Menggunakan loop, fungsi mengulangi setiap pasangan argumen yang dimulai dari indeks 2 (indeks 0 adalah nama program, dan indeks 1 adalah flag -o). Setiap pasangan terdiri dari nama aplikasi dan jumlah jendela (atau instans) yang harus dibuka. Fungsi mengkonversi jumlah jendela dari string ke integer menggunakan atoi, kemudian memanggil open_apps_helper untuk setiap aplikasi dengan jumlah yang sesuai.
+
+cmd perintah yang digunakan untuk mengeksekusi fungsi di atas:
 ```bash
 ./setup.c -o <app1> <num1> [<app2> <num2> ...]
 ```
-contoh saya ingin membuka 2 aplikasi firefox dan 2 aplikasi wireshark sekaligus, maka saya bentuk pengimplementasiaanyya adalah:
-'''bash
-./setup.c -o firefox 2 wireshark 2
+contohnya saya ingin membuka 2 aplikasi firefox dan 2 aplikasi wireshark sekaligus, maka bentuk pengimplementasiaanyya adalah:
 ```bash
 ./setup.c -o firefox 2 wireshark 2
 ```
 maka otuput yang akan dihasilkan seperti di bawah ini
 ![Screenshot 2024-04-27 210507](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/150356339/eca90c50-9646-4a49-832e-943c9760222c)
+berarti fungsi telah berhasil dijalankan
 ### 2. Membuka Aplikasi dari File Konfigurasi
-Untuk membaca file konfigurasi di mana setiap baris berisi nama aplikasi dan jumlah instansi yang akan dibuka:
+Untuk membaca file konfigurasi di mana setiap baris berisi nama aplikasi dan jumlah instansi saya membuat
+yang akan dibuka:
 ```bash
 ./setup.c -f file.con
 ```
