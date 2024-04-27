@@ -230,23 +230,134 @@ int is_library_exists(const char *dir_path) {
 }
 ```
 
-**2. Fungsi `is_library_exists' berfungsi untuk mengecek apakah sudah ada folder library atau belum**
+**3. Fungsi `download_file' berfungsi untuk mendownload file**
 ```bash
-int is_library_exists(const char *dir_path) {
-    DIR *d = opendir(dir_path);
-    if (d) {
-        struct dirent *dir;
-        while ((dir = readdir(d)) != NULL) {
-            if (strcmp(dir->d_name, "library") == 0) {
-                closedir(d);
-                return 1;
+void download_file() {
+    if (!is_library_exists("/home/ubuntu/sisop2soal2")) {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            perror("Fork failed");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            // Menggunakan perintah sistem wget untuk mengunduh file
+            execl("/usr/bin/wget", "wget", "--no-check-certificate", "https://drive.google.com/uc?export=download&id=1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup", "-O", "library.zip", NULL);
+            // execl hanya kembali jika terjadi kesalahan
+            perror("execl");
+            exit(EXIT_FAILURE);
+        } else {
+            int status;
+            waitpid(pid, &status, 0);
+            if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+                fprintf(stderr, "Download failed\n");
+                exit(EXIT_FAILURE);
             }
         }
-        closedir(d);
     }
-    return 0;
 }
 ```
+
+**4. Fungsi `unzip_file' berfungsi untuk mengunzip file**
+```bash
+void unzip_file() {
+    if (!is_library_exists("/home/ubuntu/sisop2soal2")) {
+        pid_t pid = fork();
+
+        if (pid < 0) {
+            perror("Fork failed");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            // Menggunakan perintah sistem unzip untuk mengekstrak file
+            execl("/usr/bin/unzip", "unzip", "library.zip", NULL);
+            // execl hanya kembali jika terjadi kesalahan
+            perror("execl");
+            exit(EXIT_FAILURE);
+        } else {
+            int status;
+            waitpid(pid, &status, 0);
+            if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+                fprintf(stderr, "Unzip failed\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        char zip_file_path[512] = "/home/ubuntu/sisop2soal2/library.zip";
+            if (remove(zip_file_path) != 0) {
+                perror("Error deleting library.zip");
+            }
+    }
+}
+```
+
+**5. Fungsi `decrypt_filename' berfungsi untuk mendekrip nama file dengan ROT7**
+```bash
+void decrypt_filename(char *filename) {
+    while (*filename) {
+        char c = *filename;
+        if ((c >= 'a' && c <= 'z')) {
+            // Dekripsi huruf kecil
+            *filename = ((c - 'a' + 7) % 26) + 'a';
+        } else if ((c >= 'A' && c <= 'Z')) {
+            // Dekripsi huruf besar
+            *filename = ((c - 'A' + 7) % 26) + 'A';
+        }
+        filename++;
+    }
+}
+```
+
+**6. Fungsi `decrypt_and_rename_files' berfungsi untuk mengubah nama file dengan yang sudah didekrip**
+```bash
+// Fungsi untuk mendekripsi dan mengubah nama file
+void decrypt_and_rename_files(const char *dir_path) {
+    DIR *d;
+    struct dirent *dir;
+
+    d = opendir(dir_path);
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+            // Skip file yang diawali dengan angka
+            if (dir->d_name[0] >= '0' && dir->d_name[0] <= '9') {
+                continue;
+            }
+
+            // Buat path lengkap untuk file lama dan baru
+            char old_path[512];
+            strcpy(old_path, dir_path);
+            strcat(old_path, "/");
+            strcat(old_path, dir->d_name);
+            
+            // Pastikan hanya file reguler yang diproses
+            struct stat st;
+            if (stat(old_path, &st) == 0 && S_ISREG(st.st_mode)) {
+                // Dekripsi nama file
+                decrypt_filename(dir->d_name);
+
+                // Buat nama file baru
+                char new_name[256];
+                strcpy(new_name, dir->d_name);
+
+                // Buat path baru
+                char new_path[512];
+                strcpy(new_path, dir_path);
+                strcat(new_path, "/");
+                strcat(new_path, new_name);
+
+                // Ubah nama file
+                if (rename(old_path, new_path) != 0) {
+                    perror("Rename failed");
+                }
+                    write_log("ubuntu", new_name, "Successfully renamed.");
+            }
+        }
+
+        closedir(d);
+    } else {
+        perror("Unable to open directory");
+        exit(EXIT_FAILURE);
+    }
+}
+```
+
 ## SOAL NOMOR 3
 Program nomor 3 menerima input argumen ketika dijalankan sebagai fitur dari program ini. Berikut penjelasannya.
 ### 1. logProcess
