@@ -40,7 +40,7 @@ void replaceStrings(char *content) {
     }
 }
 ```
-### 3.logReplacements
+### 3. logReplacements
 Fungsi ini digunakan untuk menginputkan log atau catatan ke dalam filelog virus.log sesuai format:
  [dd-mm-yy][H:M:S] Suspicious string at [pathfile] successfully replaced!
 ```bash
@@ -108,7 +108,7 @@ bool processFile(const char *filePath) {
     return stringReplaced;
 }
 ```
-### 5.processDirectory
+### 5. processDirectory
 Fungsi untuk mengecek apakah direktori yang diberikan user kosong atau tidak
 ```bash
 void processDirectory(const char *dirPath) {
@@ -118,7 +118,7 @@ void processDirectory(const char *dirPath) {
         return;
     }
 ```
-### 6. struct dirent *entry
+### 6. dirent *entry
 Mengecek apakah file yang diberikan berawalan dengan `.` atau `..` yang merupakan file proses yang tidak seharusnya diganti
 ```bash
  struct dirent *entry;
