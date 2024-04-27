@@ -526,7 +526,7 @@ cmd perintah yang digunakan untuk mengeksekusi fungsi di atas:
 ```bash
 ./setup.c -o <app1> <num1> [<app2> <num2> ...]
 ```
-contohnya saya ingin membuka 2 aplikasi firefox dan 2 aplikasi wireshark sekaligus, maka bentuk pengimplementasiaanyya adalah:
+contohnya jika ingin membuka 2 aplikasi firefox dan 2 aplikasi wireshark sekaligus, maka bentuk pengimplementasiaanyya adalah:
 ```bash
 ./setup.c -o firefox 2 wireshark 2
 ```
@@ -534,13 +534,43 @@ maka otuput yang akan dihasilkan seperti di bawah ini
 ![Screenshot 2024-04-27 210507](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/150356339/eca90c50-9646-4a49-832e-943c9760222c)
 berarti fungsi telah berhasil dijalankan
 ### 2. Membuka Aplikasi dari File Konfigurasi
-Untuk membaca file konfigurasi di mana setiap baris berisi nama aplikasi dan jumlah instansi saya membuat
-yang akan dibuka:
+Untuk membaca file konfigurasi di mana setiap baris berisi nama aplikasi dan jumlah instansi:
+```bash
+void open_apps_from_config(const char *config_file) {
+    FILE *file = fopen(config_file, "r");
+    if (file == NULL) {
+        perror("Error opening config file");
+        exit(EXIT_FAILURE);
+    }
+
+    char app[MAX_NAME_LENGTH];
+    int num_windows;
+    while (fscanf(file, "%s %d", app, &num_windows) == 2) {
+        open_apps_helper(app, num_windows);
+    }
+
+    fclose(file);
+}
+```
+dengan menggunakan command di bawah ini, maka akan mengeksekusi fungi
 ```bash
 ./setup.c -f file.con
 ```
+![Screenshot 2024-04-27 212448](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/150356339/6e36de71-1780-4d1b-a043-40ff898f5a65)
+
 ### 3. Menghentikan Semua Aplikasi
 Untuk menghentikan semua aplikasi yang dibuka oleh program ini:
+```bash
+void kill_all_apps() {
+    for (int i = 0; i < child_pid_count; i++) {
+        if (kill(child_pids[i], SIGTERM) == -1) {
+            perror("Error sending SIGTERM to child process");
+        }
+    }
+}
+
+```
+kemudian menggunakan perintah di bawah ini untuk mengeksekusi:
 ```bash
 ./setup.c -k
 ```
@@ -548,11 +578,19 @@ Untuk menghentikan semua aplikasi yang dibuka oleh program ini:
 ## Detail Implementasi
 - **\`child_pids\` array**: Menyimpan ID proses dari semua proses anak yang dibuat.
 - **\`child_pid_count\`**: Menghitung jumlah proses anak yang aktif.
-
-##Catatan
-Namun dalam penerapan code diatas, code pada program tidak bisa mengimplementasikan penggunaan argumen -k untuk mematikan atau menutup aplikasi yang dibuka menggunakan -f atau -k
-
 ## Batasan
 Program mengasumsikan semua aplikasi yang ditentukan dapat dijalankan dari terminal menggunakan namanya.
-
-
+## Kendala
+Setelah saya menjalankan
+```bash
+./setup.c -o <app1> <num1> [<app2> <num2> ...]
+```
+atau
+```bash
+./setup.c -f file.con
+```
+selama aplikasi terbuka prompting terminal tidak muncul kembali hingga saya menutup manual aplikasi tersebut, akibatnya saya tidak bisa memasukkan command selanjutnya termasuk
+```bash
+./setup.c -k
+```
+untuk menutup apilikas aplikasi yang telah terbuka
