@@ -405,6 +405,7 @@ void listProcesses(char *user) {
 ```
 ### 4. Main Function
 Main function menerima 3 argumen apabila tidak maka program tidak berjalan. Dalam hal ini saya menggunakan switch case ketika argumen yang diberikan `-l` program akan menjalankan fungsi `listProcesses`, apabila `-m` maka akan melakukan fork() dan menjalankan fungsi `monitorProcesses`, apabila `-s` maka akan meng-kill program monitoring process yang sedang berjalan. Sementara itu fitur untuk `-c` dan `-a` belum bisa saya buat karena keterbatasan waktu dan tenaga.
+
 Note : Hati-hati dalam menggunakan fitur `-s` karena program akan membunuh proses sampai dapat menyebabkan vmware blank screen atau terlogout dari user. Dalam kasus saya selama ini sebenarnya aman saja namun mungkin saja berbahaya bagi user lain. Ini juga merupakan problem dari kode yang belum bisa saya selesaikan dengan aman untuk menghentikan program monitoring proccess.
 ```bash
 int main(int argc, char *argv[]) {
