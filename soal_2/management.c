@@ -295,7 +295,6 @@ void backup_files(const char *dir_path, const char *backup_dir) {
 }
 
 // Fungsi untuk mengembalikan file dari backup ke direktori asal
-// Fungsi untuk mengembalikan file dari backup ke direktori asal
 void restore_files(const char *backup_dir, const char *original_dir) {
     DIR *d;
     struct dirent *dir;
