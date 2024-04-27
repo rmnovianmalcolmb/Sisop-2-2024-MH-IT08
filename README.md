@@ -5,6 +5,168 @@
 2. RM. Novian Malcolm Bayuputra (5027231035)
 3. Abid Ubaidillah Adam         (5027231089)
 
+## SOAL NOMOR 1
+### virus.c
+Dalam soal ini, program diminta untuk mengganti 'suspicious string' pada text dalam direktory yang dituju, lalu mencatatnya dalam logfile bernama `virus.log`. Berikut adalah penjelasan dari kode virus.c yang dibuat.
+### 1. Header file & define 
+Header include pada kode dan define nama LOG_FILE sesuai soal yaitu `virus.log`
+```bash
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
+#include <stdbool.h>
+
+#define MAX_STRING_LENGTH 1000
+#define LOG_FILE "virus.log"
+```
+### 2. replaceStrings
+Fungsi ini digunakan untuk mengganti suspicious strings(contohnya ada di variabel `patterns[]`) dalam for loop di fungsi ini program akan mencari string yang sama sesuai variabel `patterns[]`,lalu apabila ditemukan maka program akan mengganti string tersebut dengan string yang ada di dalam variabel `replacements[]`. Setelahnya program akan terus mencari lagi mana suspicious string berikutnya untuk diganti lagi.
+```bash 
+void replaceStrings(char *content) {
+    char *patterns[] = {"m4LwAr3", "5pYw4R3", "R4nS0mWaR3"};
+    char *replacements[] = {"[MALWARE]", "[SPYWARE]", "[RANSOMWARE]"};
+    int num_patterns = sizeof(patterns) / sizeof(patterns[0]);
+
+    for (int i = 0; i < num_patterns; i++) {
+        char *found = strstr(content, patterns[i]);
+        while (found != NULL) {
+            strncpy(found, replacements[i], strlen(replacements[i]));
+            found = strstr(found + strlen(replacements[i]), patterns[i]);
+        }
+    }
+}
+```
+### 3.logReplacements
+Fungsi ini digunakan untuk menginputkan log atau catatan ke dalam filelog virus.log sesuai format:
+ [dd-mm-yy][H:M:S] Suspicious string at [pathfile] successfully replaced!
+```bash
+void logReplacements(const char *filePath, const char *originalString, const char *replacedString) {
+    time_t now;
+    struct tm *localTime;
+    char timestamp[20];
+
+    time(&now);
+    localTime = localtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%d-%m-%Y %H:%M:%S", localTime);
+
+    FILE *logFile = fopen(LOG_FILE, "a");
+    if (logFile != NULL) {
+        fprintf(logFile, "[%s] Suspicious string at %s successfully replaced!\n", timestamp, filePath);
+        
+        fputs("\n", logFile);
+        fclose(logFile);
+    }
+}
+```
+### 4. processFile
+Fungsi ini akan membuka filepath sesuai argumen yang diberikan oleh user lalu menjalankan proses penggantian string lalu mencari file lagi yang sekiranya terdapat suspicious string, apabila tidak ada maka program akan menutup file terakhir yang ia buka
+```bash
+bool processFile(const char *filePath) {
+    FILE *file = fopen(filePath, "r+");
+    if (file == NULL) {
+        printf("Error opening file: %s\n", filePath);
+        return false;
+    }
+
+    char content[MAX_STRING_LENGTH];
+    fread(content, sizeof(char), sizeof(content), file);
+
+    char originalContent[MAX_STRING_LENGTH];
+    strcpy(originalContent, content);
+
+    bool stringReplaced = false;
+
+    char *patterns[] = {"m4LwAr3", "5pYw4R3", "R4nS0mWaR3"};
+    char *replacements[] = {"[MALWARE]", "[SPYWARE]", "[RANSOMWARE]"};
+    int num_patterns = sizeof(patterns) / sizeof(patterns[0]);
+
+    for (int i = 0; i < num_patterns; i++) {
+        char *found = strstr(content, patterns[i]);
+        while (found != NULL) {
+            stringReplaced = true;
+
+            char replacedContent[MAX_STRING_LENGTH];
+            strcpy(replacedContent, content);
+            strncpy(found, replacements[i], strlen(replacements[i]));
+
+            logReplacements(filePath, patterns[i], replacedContent);
+
+            found = strstr(found + strlen(replacements[i]), patterns[i]);
+        }
+    }
+
+    if (stringReplaced) {
+        fseek(file, 0, SEEK_SET);
+        fwrite(content, sizeof(char), strlen(content), file);
+    }
+
+    fclose(file);
+    return stringReplaced;
+}
+```
+### 5.processDirectory
+Fungsi untuk mengecek apakah direktori yang diberikan user kosong atau tidak
+```bash
+void processDirectory(const char *dirPath) {
+    DIR *dir = opendir(dirPath);
+    if (dir == NULL) {
+        printf("Error opening directory: %s\n", dirPath);
+        return;
+    }
+```
+### 6. struct dirent *entry
+Mengecek apakah file yang diberikan berawalan dengan `.` atau `..` yang merupakan file proses yang tidak seharusnya diganti
+```bash
+ struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        char filePath[MAX_STRING_LENGTH];
+        snprintf(filePath, sizeof(filePath), "%s/%s", dirPath, entry->d_name);
+        struct stat fileStat;
+        if (stat(filePath, &fileStat) == 0) {
+            if (S_ISDIR(fileStat.st_mode)) {
+                if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+                    processDirectory(filePath);
+                }
+            } else {
+                processFile(filePath);
+            }
+        }
+    }
+    closedir(dir);
+}
+```
+### 7. Main Function
+Main function akan menerima 2 argumen, apabila bukan 2 maka program tidak akan berjalan. Setelah menerima argumen, program melakukan fork dan akan menjeda setiap 15 detik.
+```bash
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s <folder_path>\n", argv[0]);
+        return 1;
+    }
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        fprintf(stderr, "Fork failed\n");
+        return 1;
+    } else if (pid > 0) {
+        printf("Daemon started with PID: %d\n", pid);
+        return 0;
+    }
+
+    while (1) {
+        processDirectory(argv[1]);
+        sleep(15);
+    }
+
+    return 0;
+}
+```
+
 ## SOAL NOMOR 2
 
 ### management.c
