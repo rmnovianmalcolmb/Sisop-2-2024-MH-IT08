@@ -83,29 +83,37 @@ Program ini memiliki tiga fungsionalitas utama:
 
 ## Kompilasi
 Untuk mengkompilasi program, gunakan perintah GCC berikut:
-\`\`\`bash
-gcc -o app_manager app_manager.c
-\`\`\`
-Ini akan menghasilkan eksekutabel yang bernama \`app_manager\`.
+```bash
+gcc setup.c -o setup
+```
+Ini akan menghasilkan eksekutabel yang bernama setup.c
 
 ## Penggunaan
 Program dapat dijalankan dalam tiga mode berbeda:
 
 ### 1. Membuka Aplikasi Langsung
 Untuk menentukan aplikasi dan jumlah instansi langsung melalui argumen baris perintah:
-\`\`\`bash
-./app_manager -o <app1> <num1> [<app2> <num2> ...]
-\`\`\`
+```bash
+./setup.c -o <app1> <num1> [<app2> <num2> ...]
+```
+contoh saya ingin membuka 2 aplikasi firefox dan 2 aplikasi wireshark sekaligus, maka saya bentuk pengimplementasiaanyya adalah:
+'''bash
+./setup.c -o firefox 2 wireshark 2
+```bash
+./setup.c -o firefox 2 wireshark 2
+```
+maka otuput yang akan dihasilkan seperti di bawah ini
+![Uploading Screenshot 2024-04-27 210507.png…]()
 ### 2. Membuka Aplikasi dari File Konfigurasi
 Untuk membaca file konfigurasi di mana setiap baris berisi nama aplikasi dan jumlah instansi yang akan dibuka:
-\`\`\`bash
-./app_manager -f config.txt
-\`\`\`
+```bash
+./setup.c -f file.con
+```
 ### 3. Menghentikan Semua Aplikasi
 Untuk menghentikan semua aplikasi yang dibuka oleh program ini:
-\`\`\`bash
-./app_manager -k
-\`\`\`
+```bash
+./setup.c -k
+```
 
 ## Detail Implementasi
 - **\`child_pids\` array**: Menyimpan ID proses dari semua proses anak yang dibuat.
