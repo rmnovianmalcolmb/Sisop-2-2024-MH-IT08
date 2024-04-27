@@ -176,11 +176,11 @@ gcc virus.c -o virus
 ./virus /home/ubuntu/sisop/no1/tes
 ```
 ### Isi dari `virus.log` yang dibuat program
-<gambar>
+![IMG-20240427-WA0014](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/146155753/169b07c4-5659-4a56-a789-39935f793d28)
 ### File dalam path sebelum program dijalankan
-<gambar>
+![IMG-20240427-WA0013](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/146155753/0d6e3787-0015-4dfb-ae75-bf87cc384c2c)
 ### File dalam path setelah program dijalankan
-<gambar>
+![IMG-20240427-WA0015](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/146155753/0471297a-bfb5-4cb8-b9bc-8574862ea801)
 
 ## SOAL NOMOR 2
 
