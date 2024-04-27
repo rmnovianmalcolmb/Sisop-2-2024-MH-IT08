@@ -103,7 +103,7 @@ contoh saya ingin membuka 2 aplikasi firefox dan 2 aplikasi wireshark sekaligus,
 ./setup.c -o firefox 2 wireshark 2
 ```
 maka otuput yang akan dihasilkan seperti di bawah ini
-![Uploading Screenshot 2024-04-27 210507.png…]()
+![Screenshot 2024-04-27 210507](https://github.com/rmnovianmalcolmb/Sisop-2-2024-MH-IT08/assets/150356339/eca90c50-9646-4a49-832e-943c9760222c)
 ### 2. Membuka Aplikasi dari File Konfigurasi
 Untuk membaca file konfigurasi di mana setiap baris berisi nama aplikasi dan jumlah instansi yang akan dibuka:
 ```bash
