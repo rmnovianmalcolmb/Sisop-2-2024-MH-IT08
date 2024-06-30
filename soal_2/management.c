@@ -6,6 +6,30 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <signal.h>
+
+char dir_path[1024];
+char library_path[1024];  
+char zip_file_path[1024]; 
+char log_file_path[1024];
+char backup_path[1024];
+
+volatile sig_atomic_t mode = 0;
+void handle_default(int sig) { 
+    mode = 0; 
+}
+
+void handle_backup(int sig) { 
+    mode = 1; 
+}
+
+void handle_restore(int sig) { 
+    mode = 2; 
+}
+
+void handle_exit(int sig) { 
+    exit(EXIT_SUCCESS); 
+}
 
 // Fungsi untuk menulis pesan log ke file
 void write_log(const char *username, const char *filename, const char *action) {
@@ -18,7 +42,7 @@ void write_log(const char *username, const char *filename, const char *action) {
     strftime(buffer, sizeof(buffer), "%H:%M:%S", info);
 
     // Open log file for appending
-    FILE *log_file = fopen("/home/ubuntu/sisop2soal2/history.log", "a");
+    FILE *log_file = fopen(log_file_path, "a");
     if (log_file == NULL) {
         perror("Error opening log file");
         exit(EXIT_FAILURE);
@@ -38,7 +62,7 @@ int is_library_exists(const char *dir_path) {
     if (d) {
         struct dirent *dir;
         while ((dir = readdir(d)) != NULL) {
-            if (strcmp(dir->d_name, "library") == 0) {
+            if (strcmp(dir->d_name, library_path) == 0) {
                 closedir(d);
                 return 1;
             }
@@ -50,7 +74,7 @@ int is_library_exists(const char *dir_path) {
 
 // Fungsi untuk mendownload file dari URL yang diberikan
 void download_file() {
-    if (!is_library_exists("/home/ubuntu/sisop2soal2")) {
+    if (!is_library_exists(dir_path)) {
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -58,7 +82,7 @@ void download_file() {
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
             // Menggunakan perintah sistem wget untuk mengunduh file
-            execl("/usr/bin/wget", "wget", "--no-check-certificate", "https://drive.google.com/uc?export=download&id=1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup", "-O", "library.zip", NULL);
+            execl("/usr/bin/wget", "wget", "--no-check-certificate", "--content-disposition", "https://drive.google.com/uc?export=download&id=1rUIZmp10lXLtCIH3LAZJzRPeRks3Crup", "-P", "/home/ubuntu/sisop2soal2", NULL);
             // execl hanya kembali jika terjadi kesalahan
             perror("execl");
             exit(EXIT_FAILURE);
@@ -74,8 +98,9 @@ void download_file() {
 }
 
 // Fungsi untuk mengekstrak file yang diunduh
+// Fungsi untuk mengekstrak file yang diunduh
 void unzip_file() {
-    if (!is_library_exists("/home/ubuntu/sisop2soal2")) {
+    if (!is_library_exists(dir_path)) {
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -83,7 +108,7 @@ void unzip_file() {
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
             // Menggunakan perintah sistem unzip untuk mengekstrak file
-            execl("/usr/bin/unzip", "unzip", "library.zip", NULL);
+            execl("/usr/bin/unzip", "unzip", "-o", zip_file_path, "-d", dir_path, NULL);
             // execl hanya kembali jika terjadi kesalahan
             perror("execl");
             exit(EXIT_FAILURE);
@@ -95,10 +120,11 @@ void unzip_file() {
                 exit(EXIT_FAILURE);
             }
         }
-        char zip_file_path[512] = "/home/ubuntu/sisop2soal2/library.zip";
-            if (remove(zip_file_path) != 0) {
-                perror("Error deleting library.zip");
-            }
+
+        // Hapus file ZIP setelah diekstrak
+        if (remove(zip_file_path) != 0) {
+            perror("Error deleting library.zip");
+        }
     }
 }
 
@@ -126,7 +152,7 @@ void decrypt_and_rename_files(const char *dir_path) {
     if (d) {
         while ((dir = readdir(d)) != NULL) {
             // Skip file yang diawali dengan angka
-            if (dir->d_name[0] >= '0' && dir->d_name[0] <= '9') {
+            if (dir->d_name[0] >= '0' && dir->d_name[0] <= '9' || dir->d_name[0] == '.') {
                 continue;
             }
 
@@ -295,6 +321,7 @@ void backup_files(const char *dir_path, const char *backup_dir) {
 }
 
 // Fungsi untuk mengembalikan file dari backup ke direktori asal
+// Fungsi untuk mengembalikan file dari backup ke direktori asal
 void restore_files(const char *backup_dir, const char *original_dir) {
     DIR *d;
     struct dirent *dir;
@@ -332,13 +359,55 @@ void restore_files(const char *backup_dir, const char *original_dir) {
 }
 
 int main(int argc, char *argv[]) {
+    getcwd(dir_path, sizeof(dir_path));
+    strcpy(log_file_path, dir_path);
+    strcpy(library_path, dir_path);
+    strcat(log_file_path, "/history.log"); // path untuk file log
+    strcat(library_path, "/library"); // path untuk folder library setelah unzip
+    strcpy(zip_file_path, library_path);
+    strcat(zip_file_path, ".zip"); // path untuk file zip
+    strcpy(backup_path, library_path);
+    strcat(backup_path, "/backup"); // path untuk folder backup
+
+    signal(SIGRTMIN, handle_default);
+    signal(SIGUSR1, handle_backup);
+    signal(SIGUSR2, handle_restore);
+    signal(SIGTERM, handle_exit);
+
+    pid_t pid, sid;        // Variabel untuk menyimpan PID
+
+    pid = fork();     // Menyimpan PID dari Child Process
+
+    /* Keluar saat fork gagal
+    * (nilai variabel pid < 0) */
+    if (pid < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    /* Keluar saat fork berhasil
+    * (nilai variabel pid adalah PID dari child process) */
+    if (pid > 0) {
+        exit(EXIT_SUCCESS);
+    }
+
+    umask(0);
+
+    sid = setsid();
+    if (sid < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    if ((chdir("/")) < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
     if (argc < 2) {
         // Default mode: rename dan hapus file
-        download_file();
-        unzip_file();
-        decrypt_and_rename_files("/home/ubuntu/sisop2soal2/library");
-        remove_files_with_code("/home/ubuntu/sisop2soal2/library", "d3Let3");
-        rename_files_by_code("/home/ubuntu/sisop2soal2/library", "r3N4mE");
+        mode = 0;
     } else {
         // Mode tambahan
         if (strcmp(argv[1], "-m") == 0) {
@@ -348,10 +417,10 @@ int main(int argc, char *argv[]) {
             }
             if (strcmp(argv[2], "backup") == 0) {
                 // Mode backup: pindahkan file dengan kode "m0V3" ke folder "backup"
-                backup_files("/home/ubuntu/sisop2soal2/library", "/home/ubuntu/sisop2soal2/library/backup");
+                mode = 1;
             } else if (strcmp(argv[2], "restore") == 0) {
                 // Mode restore: kembalikan file dari folder "backup" ke folder asal
-                restore_files("/home/ubuntu/sisop2soal2/library/backup", "/home/ubuntu/sisop2soal2/library");
+                mode = 2;
             } else {
                 fprintf(stderr, "Unknown mode: %s\n", argv[2]);
                 exit(EXIT_FAILURE);
@@ -360,6 +429,27 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Unknown option: %s\n", argv[1]);
             exit(EXIT_FAILURE);
         }
+    }
+
+    while(1) {
+        switch(mode) {
+            case 0:
+                // Default mode: rename dan hapus file
+                download_file();
+                unzip_file();
+                decrypt_and_rename_files(library_path);
+                remove_files_with_code(library_path, "d3Let3");
+                rename_files_by_code(library_path, "r3N4mE");
+                break;
+            case 1:
+                // Mode backup: pindahkan file dengan kode "m0V3" ke folder "backup"
+                backup_files(library_path, backup_path);
+                break;
+            case 2:
+                // Mode restore: kembalikan file dari folder "backup" ke folder asal
+                restore_files(backup_path, library_path);
+                break;
+        } sleep(1000);
     }
     return 0;
 }
